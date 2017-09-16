@@ -1,0 +1,6 @@
+discord.py
+praw
+aiohttp
+aiofiles
+parsedatetime
+pytz
