@@ -23,7 +23,7 @@ class UtilityMixin:
         # Check to make sure the answer is a private message and
         #   it is yes or no
         def c(msg):
-            return isinstance(msg.channel, discord.PrivateChannel) and
+            return isinstance(msg.channel, discord.PrivateChannel) and \
                 msg.content.lower() in ('yes', 'no')
         
         # Wait for the answer, and return the result
