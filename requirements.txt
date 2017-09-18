@@ -1,4 +1,6 @@
+honcho
 discord.py
+aioredis
 praw
 aiohttp
 aiofiles
