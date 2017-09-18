@@ -96,22 +96,6 @@ class RoboHound(commands.Bot):
             
         self.owner = await self.get_user_info(self._owner_id)
         self.storage = await self._db.get_namespace('')
-            
-    
-    @commands.command()
-    async def set(self, key, value):
-        """Save a value under key (temporary test command)"""
-        await self.storage.set(key, value)
-        await self.say('Stored `{}` under `{}`'.format(value,key))
         
-        
-    @commands.command()
-    async def get(self, key):
-        """Retreive a value under key (temporary test command)"""
-        value = await self.storage.get(key)
-        if value:
-            await self.say(f'`{key}`:\n```{value}```')
-        else:
-            await self.say(f"*Couldn't find* `{key}`")
             
         
