@@ -37,3 +37,6 @@ class Base:
             await self.bot.say(f'`{key}`:\n```{value}```')
         else:
             await self.bot.say(f"*Couldn't find* `{key}`")
+
+def setup(bot):
+    bot.add_cog(Base(bot))
