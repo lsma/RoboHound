@@ -15,11 +15,12 @@ class Base:
     def __init__(self, bot):
         self.bot = bot
     
-    @commands.group(aliases=['db'], hidden=True, pass_context=True,
-                    invoke_without_command=True)
-    def redis(self, ctx):
+    
+    @commands.group(aliases=['db'], hidden=True, pass_context=True)
+    async def redis(self, ctx):
         """Commands for raw database editing !!VERY DANGEROUS!!"""
-        await self.bot.say('You must use a sub-command')
+        if ctx.invoked_subcommand is None:
+            await self.bot.say('You must use a sub-command')
     
     
     @redis.command()
