@@ -16,6 +16,11 @@ class Base:
         self.bot = bot
     
     
+    @commands.command()
+    async def about(self):
+        await self.bot.say(self.bot.__class__.__doc__)
+    
+    
     @commands.group(aliases=['db'], hidden=True, pass_context=True)
     async def redis(self, ctx):
         """Commands for raw database editing !!VERY DANGEROUS!!"""
