@@ -28,6 +28,10 @@ class RoboHound(commands.Bot, UtilityMixin):
         self._db = Db(kwargs.get('redis_address'))
         self.storage = None
         self.log = kwargs.get('log', logging.getLogger()).getChild('RoboHound')
+        if kwargs.get('debug', None):
+            self.log.setLevel(logging.DEBUG)
+        else:
+            self.log.setLevel(logging.INFO)
         
         self.load_extension('robohound.base_commands')
     

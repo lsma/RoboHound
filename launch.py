@@ -28,16 +28,12 @@ logging.basicConfig(level=logging.INFO)
 logging.info('Launching RoboHound')
 
 logger = logging.getLogger('discord')
-if debug:
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
-
 
 # Start the bot
 bot = RoboHound(
     redis_address = ('localhost', int(redis)),
     log = logger,
     owner_id = owner_id,
+    debug = debug,
 )
 bot.run(token)
