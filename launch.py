@@ -8,10 +8,22 @@ import logging
 
 from robohound import RoboHound
 
-token = os.getenv('RH_TOKEN')
+
+# Get environment variables
+uname = os.getenv('RH_BOT_USERNAME')
+token = os.getenv('RH_BOT_TOKEN')
+
+client_id = os.getenv('RH_BOT_CLIENT_ID')
+client_secret = os.getenv('RH_BOT_CLIENT_SECRET')
+
+owner_id = os.getenv('RH_OWNER_ID')
+
 redis = os.getenv('RH_REDIS_PORT')
+
 debug = os.getenv('RH_DEBUG')
 
+
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 logging.info('Launching RoboHound')
 
@@ -21,8 +33,11 @@ if debug:
 else:
     logger.setLevel(logging.INFO)
 
+
+# Start the bot
 bot = RoboHound(
     redis_address = ('localhost', int(redis)),
     log = logger,
+    owner_id = owner_id,
 )
 bot.run(token)
