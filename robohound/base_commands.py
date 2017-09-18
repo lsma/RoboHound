@@ -9,7 +9,7 @@ from discord.ext import commands
 class Base:
     """
     Extension containing base bot commands.
-    This cog is always loaded in on_ready, and can't be dumped.
+    This cog is always loaded during bot __init__, and can't be dumped.
     """
 
     def __init__(self, bot):
@@ -17,9 +17,9 @@ class Base:
     
     @commands.group(aliases=['db'], hidden=True, pass_context=True,
                     invoke_without_command=True)
-    def redis(self):
+    def redis(self, ctx):
         """Commands for raw database editing !!VERY DANGEROUS!!"""
-        await self.bot.say("You must use a sub-command")
+        await self.bot.say('You must use a sub-command')
     
     
     @redis.command()
