@@ -27,7 +27,7 @@ class RoboHound(commands.Bot, UtilityMixin):
         self._owner_id = kwargs.get('owner_id')
         self._db = Db(kwargs.get('redis_address'))
         self.storage = None
-        self.log = kwargs.get('log', logging.getLogger().getChild('bot'))
+        self.log = kwargs.get('log', logging.getLogger()).getChild('RoboHound')
         
         self.load_extension('robohound.base_commands')
     

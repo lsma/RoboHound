@@ -27,7 +27,7 @@ debug = os.getenv('RH_DEBUG')
 logging.basicConfig(level=logging.INFO)
 logging.info('Launching RoboHound')
 
-logger = logging.getLogger('RoboHound')
+logger = logging.getLogger('discord')
 if debug:
     logger.setLevel(logging.DEBUG)
 else:
