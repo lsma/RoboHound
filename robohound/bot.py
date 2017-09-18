@@ -28,6 +28,7 @@ class RoboHound(commands.Bot, UtilityMixin):
         self._db = Db(kwargs.get('redis_address'))
         self.storage = None
         self.log = kwargs.get('log', logging.getLogger().getChild('bot'))
+        
     
     
     def run(self, t):
@@ -44,9 +45,13 @@ class RoboHound(commands.Bot, UtilityMixin):
         except Exception as e:
             self.log.warning("Couldn't set game status")
             raise e
-    
-        self.load_extension(f'base_commands')
-        self.log.info(f'Loaded the base commands extension')
+        
+        try:
+            self.load_extension('robohound.base_commands')
+            self.log.info(f'Loaded the base commands extension')
+        except Exception as e:
+            self.log.error("Couldn't load base commands extension")
+            self.log.error(str(e))
             
         self.owner = await self.get_user_info(self._owner_id)
         self.storage = await self._db.get_namespace('')
