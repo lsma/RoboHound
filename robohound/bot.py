@@ -4,6 +4,7 @@ bot.py
 The actual bot class and base code/mechanisms
 """
 import logging
+import traceback
 import discord
 from discord.ext import commands
 
@@ -53,6 +54,11 @@ class RoboHound(commands.Bot, UtilityMixin):
             
         self.owner = await self.get_user_info(self._owner_id)
         self.storage = await self._db.get_namespace('')
+    
+    async def on_command_error(self, exception, ctx):
+        self.log.error(f'Ignoring exception in command "{ctx.command}"')
+        tb = ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__))
+        self.log.error(tb)
         
             
         
