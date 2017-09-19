@@ -29,6 +29,10 @@ logging.info('Launching RoboHound')
 
 logger = logging.getLogger('discord')
 
+handler = logging.FileHandler(filename='robohound.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s'))
+logger.addHandler(handler)
+
 # Start the bot
 bot = RoboHound(
     redis_address = ('localhost', int(redis)),
