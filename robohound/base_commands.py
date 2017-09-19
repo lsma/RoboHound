@@ -6,87 +6,93 @@ etc.) for the bot.
 """
 from discord.ext import commands
 
-from ..utils import is_bot_ower
+from .utils import is_bot_ower
 
-class Base:
+class Extension:
+    def __init__(self, bot):
+        self.bot = bot
+        self.log = bot.log.getChild(self.__class__.__name__)
+
+
+class Base(Extension):
     """
     Extension containing base bot commands.
     This cog is always loaded during bot __init__, and can't be dumped.
     """
-
-    def __init__(self, bot):
-        self.bot = bot
     
+    EXT_PREFIX = 'robohound.extensions.'
     
     @commands.command()
     async def about(self):
         await self.bot.say(self.bot.__class__.__doc__)
     
     
-    @commands.group(aliases=['ext'], hidden=True, pass_context=True,
-                    invoke_without_command=True)
+    @commands.group(aliases=['ext'], hidden=False, invoke_without_command=True)
     @is_bot_ower()
-    async def extension(self, ctx):
+    async def extension(self):
         """extension command group"""
-        await self.send_typing(ctx.message.channel)
-        sub_commands = ', '.join(extension.commands)
-        m = f'Available sub-commands: {sub_commands}'
-        await self.say(m)
-        await self.extension.list()
+        await self.bot.type()
+        sub_commands = '`, `'.join(self.extension.commands)
+        m = f'Available sub-commands: `{sub_commands}`'
+        await self.bot.say(m)
+        m = 'Current active extensions:'
+        for e in self.bot.extensions:
+            m += '\n `{}`'.format(e.split('.')[-1])
+        await self.bot.say(m)
         
 
-    @extension.command(pass_context=True)
+    @extension.command()
     @is_bot_ower()
-    async def load(self, ctx, *, ext:str):
+    async def load(self, *, ext:str):
         """Load extension <ext>"""
-        await self.send_typing(ctx.message.channel)
+        await self.bot.type()
         ext = ext.strip()
     
         try:
-            self.load_extension(f'extensions.{ext}')
+            self.bot.load_extension(f'{self.EXT_PREFIX}{ext}')
             self.log.info(f'Loaded {ext}')
-            await self.say(f'Extension `{ext}` has been loaded')
+            await self.bot.say(f'Extension `{ext}` has been loaded')
     
         except Exception as e:
-            await self.say('Sorry, I ran into an issue loading that extension')
+            await self.bot.say('Sorry, I ran into an issue loading that extension')
             raise e
 
 
-    @extension.command(pass_context=True)
+    @extension.command()
     @is_bot_ower()
-    async def dump(self, ctx, *, ext:str):
+    async def dump(self, *, ext:str):
         """Dump extension <ext>"""
-        await self.send_typing(ctx.message.channel)
+        await self.bot.type()
         ext = ext.strip()
     
         try:
-            self.unload_extension(f'extensions.{ext}')
+            self.bot.unload_extension(f'{self.EXT_PREFIX}{ext}')
             self.log.info(f'Dumped {ext}')
-            await self.say(f'Extension `{ext}` has been dumped')
+            await self.bot.say(f'Extension `{ext}` has been dumped')
     
         except Exception as e:
-            await self.say('Sorry, I ran into an issue dumping that extension')
+            await self.bot.say('Sorry, I ran into an issue dumping that extension')
             raise e
 
 
-    @extension.command(pass_context=True)
+    @extension.command()
     @is_bot_ower()
-    async def reload(self, ctx, *, ext:str):
+    async def reload(self, *, ext:str):
         """Reload extension <ext>"""
-        await self.send_typing(ctx.message.channel)
+        await self.bot.type()
         ext = ext.strip()
     
         try:
-            self.unload_extension(f'extensions.{ext}')
+            self.bot.unload_extension(f'{self.EXT_PREFIX}{ext}')
             self.log.info(f'Dumped {ext}')
             
-            self.load_extension(f'extensions.{ext}')
+            self.bot.load_extension(f'{self.EXT_PREFIX}{ext}')
             self.log.info(f'Loaded {ext}')
             
-            await self.say(f'Extension `{ext}` has been reloaded')
+            await self.bot.say(f'Extension `{ext}` has been reloaded')
     
         except Exception as e:
-            await self.say('Sorry, I ran into an issue reloading that extension')
+            await self.bot.say('Sorry, I ran into an issue reloading that extension')
             raise e
 
 
@@ -94,11 +100,11 @@ class Base:
     @is_bot_ower()
     async def list(self):
         """List all extensions"""
-        await self.send_typing(ctx.message.channel)
+        await self.bot.type()
         m = 'Current active extensions:'
-        for e in self.extensions:
+        for e in self.bot.extensions:
             m += '\n `{}`'.format(e.split('.')[-1])
-        await self.say(m)
+        await self.bot.say(m)
 
 
     @commands.group(aliases=['db'], hidden=True, pass_context=True)
