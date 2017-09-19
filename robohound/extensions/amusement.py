@@ -50,7 +50,7 @@ class Amusement:
         await self.bot.say(f)
         
     @commands.command(pass_context=True)
-    #@checks.admin_or_permissions(manage_emojis=True)
+    @commands.has_role('manage_emojis')
     async def emojify(self, ctx):
         """Make the last posted image into an emoji (Blocked by discord atm)"""
         logs = await self.bot.logs_from(ctx.message.channel, limit=10)
