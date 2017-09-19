@@ -1,7 +1,6 @@
 import discord
 import asyncio
 from discord.ext import commands
-from .utils import checks
 
 
 class Information:
@@ -23,7 +22,7 @@ class Information:
                     m += f'\n{p}:`{val}`'
         return m
         
-        
+    
     @commands.group(pass_context=True)
     async def info(self, ctx):
         """All info commands"""
@@ -50,6 +49,7 @@ class Information:
         await self.bot.send_typing(ctx.message.channel)
         m = '**User information**' + self.get_info(ctx.message.author)
         await self.bot.say(m)
+        
         
     
 def setup(bot):

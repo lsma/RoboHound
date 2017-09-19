@@ -20,7 +20,7 @@ class Moderation:
             ctx.message.server.members)
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('kick_members')
+    @commands.has_permissions(kick_members=True)
     async def kick(self, ctx,member_name:str):
         """Kick a member"""
         member = self.get_user(ctx, member_name)
@@ -32,7 +32,7 @@ class Moderation:
         await self.bot.say('A OK! {} has been kicked'.format(member.name))
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('ban_members')
+    @commands.has_permissions(ban_members=True)
     async def ban(self, *,member_name:str):
         """Ban a member"""
         member = self.get_user(ctx, member_name)
@@ -45,7 +45,7 @@ class Moderation:
     
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('manage_server')
+    @commands.has_permissions(manage_server=True)
     async def lban(self, ctx):
         """List all bans"""
         bans = await self.bot.get_bans(ctx.message.server)
@@ -57,7 +57,7 @@ class Moderation:
     
         
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('mute_members')
+    @commands.has_permissions(ban_members=True)
     async def mute(self, ctx,member_name:str):
         """Mute/unmute a member"""
         member = self.get_user(ctx, member_name)
@@ -70,7 +70,7 @@ class Moderation:
         
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('deafen_members')
+    @commands.has_permissions(deafen_members=True)
     async def deafen(self, ctx,member_name:str):
         """Deafen/undeafen a member"""
         member = self.get_user(ctx, member_name)
@@ -83,7 +83,7 @@ class Moderation:
         
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('manage_roles')
+    @commands.has_permissions(manage_roles=True)
     async def role(self, ctx,member_name:str,role_name:str):
         """Add a user to a role"""
         member = self.get_user(ctx, member_name)
@@ -100,7 +100,7 @@ class Moderation:
     
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('manage_roles')
+    @commands.has_permissions(manage_roles=True)
     async def unrole(self, ctx,member_name:str,role_name:str):
         """Remove a user from a role"""
         member = self.get_user(ctx, member_name)
@@ -116,7 +116,7 @@ class Moderation:
         await self.bot.say('A OK!  I have removed {} from {}'.format(member.name,role.name))
     
     @commands.command(pass_context=True,no_pm=True)
-    @commands.has_role('manage_messages')
+    @commands.has_permissions(manage_messages=True)
     async def purge(self, ctx, *args:str):
         """Delete lots messages"""
         limit = 5
