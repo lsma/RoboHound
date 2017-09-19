@@ -5,7 +5,7 @@ import async_timeout
 import discord
 import asyncio
 from discord.ext import commands
-from .utils import checks
+#from .utils import checks
 
 async def fetch(session, url):
     with async_timeout.timeout(10):
@@ -50,7 +50,7 @@ class Amusement:
         await self.bot.say(f)
         
     @commands.command(pass_context=True)
-    @checks.admin_or_permissions(manage_emojis=True)
+    #@checks.admin_or_permissions(manage_emojis=True)
     async def emojify(self, ctx):
         """Make the last posted image into an emoji (Blocked by discord atm)"""
         logs = await self.bot.logs_from(ctx.message.channel, limit=10)

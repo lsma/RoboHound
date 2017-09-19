@@ -11,7 +11,7 @@ import atexit
 import discord
 from discord.ext import commands
 from pytz import timezone
-from .utils import checks
+#from .utils import checks
 
 
 
