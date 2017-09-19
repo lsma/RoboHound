@@ -36,16 +36,17 @@ class Amusement:
         await self.bot.say('`{}`'.format(random.choice(args)))
     
     
-    @commands.command(pass_context=True)
-    async def fortune(self, ctx):
+    @commands.command()
+    async def fortune(self):
         """Pick something from a list of words"""
-        await self.bot.send_typing(ctx.message.channel)
-        try:
-            app = os.popen('fortune')
-            f = app.read()
-            app.close()
-        except Exception as e:
-            f = 'Go away! No fortunes today!'
+        await self.bot.type()
+        
+        app = await asyncio.create_subprocess_exec( \
+            'fortune', '-s', stdout=asyncio.subprocess.PIPE, loop=self.bot.loop)
+        reply = await app.communicate(None)
+        await app.wait()
+        
+        f = reply[0].decode('utf-8').rstrip()
         await asyncio.sleep((random.random()+1)*2)
         await self.bot.say(f)
         
