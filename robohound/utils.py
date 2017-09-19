@@ -32,7 +32,7 @@ class UtilityMixin:
         answer = answer.casefold()
         return answer == 'yes'
 
-def is_bot_ower(name):
+def is_bot_ower():
     """Decorator which makes sure the command invoker is the bot owner"""
     def predicate(ctx):
         return ctx.message.author.id == ctx.bot.owner.id
