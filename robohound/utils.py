@@ -3,6 +3,7 @@ utils.py
 
 Utility functions and the bot'd utility mixin class
 """
+from discord.ext.commands import check
 
 class UtilityMixin:
     async def bot_owner_get(self, message, check=None, timeout=None):
@@ -30,3 +31,12 @@ class UtilityMixin:
         answer = await self.bot_owner_get(message, check=c, timeout=timeout)
         answer = answer.casefold()
         return answer == 'yes'
+
+def is_bot_ower(name):
+    """Decorator which makes sure the command invoker is the bot owner"""
+    def predicate(ctx):
+        return ctx.message.author.id == ctx.bot.owner.id
+
+    return check(predicate)
+    
+    
