@@ -3,7 +3,11 @@ utils.py
 
 Utility functions and the bot'd utility mixin class
 """
+import logging
 from discord.ext.commands import check
+
+logger = logging.getLogger('discord.RoboHound.utils')
+logger.setLevel(logging.DEBUG)
 
 class UtilityMixin:
     async def bot_owner_get(self, message, check=None, timeout=None):
@@ -35,6 +39,7 @@ class UtilityMixin:
 def is_bot_ower():
     """Decorator which makes sure the command invoker is the bot owner"""
     def predicate(ctx):
+        logger.debug(f'is_bot_owner check for {ctx.command.name}')
         return ctx.message.author.id == ctx.bot.owner.id
 
     return check(predicate)
