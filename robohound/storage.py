@@ -96,6 +96,10 @@ class Storage():
         key = self.namespace + key
         return await self.redis.lpop(key, *values)
 
+    async def llen(self, key):
+        key = self.namespace + key
+        return await self.redis.llen(key)
+        
     async def lrange(self, key, start, stop):
         key = self.namespace + key
         return await self.redis.lrange(key, start, stop)

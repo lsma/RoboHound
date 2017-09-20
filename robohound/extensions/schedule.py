@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import asyncio
+import functools
 import aiofiles
 import datetime
 import parsedatetime
@@ -54,13 +55,23 @@ class Saved:
                 
         self._canceled = None
     
-    async def execute(self):
-        now = datetime.datetime.now(tz=self.when.tzinfo)
-        time_delta = (self.when - now).total_seconds()
-        
-        if time_delta > 0:
-            await asyncio.sleep(time_delta)
     
+    @property
+    def wait_time(self):
+        now = datetime.datetime.now(tz=self.when.tzinfo)
+        return (self.when - now).total_seconds()
+    
+    
+    @property
+    def overdue(self):
+        return (self.wait_time < 0)
+        
+        
+    async def execute(self):
+        if not self.overdue:
+            await asyncio.sleep(self.wait_time)
+            return 1
+        
     
     def cancel(self):
         self._canceled = True
@@ -154,8 +165,7 @@ class Schedule(Extension):
         
         self.cal = parsedatetime.Calendar()
         
-        self.commands = []
-        
+        self.ready = False
         self.bot.loop.create_task(self.load())
     
     
@@ -164,61 +174,79 @@ class Schedule(Extension):
         tz = timezone(self.TZ_CONVERT[server.region])
         dt, _ = self.cal.parseDT(datetimeString=message)
         return dt.astimezone(tz)
-    
-    async def save(self):
-        """Save all currently waiting commands to a file"""
-        d = []
-        for i in self.commands:
-            d.append(i.encode())
-        
-        data = json.dumps(d)
-        
-        async with aiofiles.open(self.SAVE_FILE, mode='w') as f:
-            await f.write(data)
-        self.log.info('Saved commands to disk')
         
         
     async def load(self):
         """Load commands from a file"""
         await self.bot.wait_until_ready()
         
-        async with aiofiles.open(self.SAVE_FILE, mode='r') as f:
-            d = await f.read()
-        
-        data = json.loads(d)
-        self.commands.clear()
-        
-        for c in data:
-            self.bot.loop.create_task(self.add_saved(
-                c['content'],
-                datetime.datetime.fromtimestamp(c['when']),
-                str(c['channel']),
-                str(c['author'])
-            ))
+        self.log.info('Loading saved items')
+        failed = {}
+        total_items = await self.storage.llen('saved')
+        while total_items > 0
+            total_times -= 1
             
+            data = await self.storage.rpop('saved')
+            cur = self.decode_saved(**json.loads(data))
+            
+            if cur.overdue():
+                if cur.channel in failed:
+                    failed[cur.channel] += 1
+                else:
+                    failed[cur.channel] = 1
+                self.log.debug(f'Ignored overdue item "{cur.content}"')
+            else:
+                self.bot.loop.call_soon(self.add_saved(cur))
+        
+        self.ready = True
+        
+        for ch in failed:
+            await self.bot.send_message(
+                ch,
+                'Apologies, but I had to reboot, and lost ' + \
+                '{} scheduled actions!'.format(failed[ch]),
+            )
+        
     
-    async def add_saved(self,content,when,channel,author):
-        """Add a saved item to the manager"""
+    def decode_saved(self,content,when,channel,author):
+        """
+        Makes a new saved item
+        This coroutine will not complete until the saved item has been executed
+        """
         if content.startswith('!'):
             t = SavedCommand
         else:
             t = SavedMessage
         
-        saved_item = t(
+        return t(
             self.bot,
             content,
             when,
             channel,
             author,
         )
+    
+    
+    async def add_saved(self, saved_item):
+        """
+        Makes a new saved item
+        This coroutine will not complete until the saved item has been executed
+        """
+        data = saved_item.encode()
         
-        self.commands.append(saved_item)
-        await self.save()
-        self.log.info(f'Added saved item "{content}"')
-        await saved_item.execute()
-        self.commands.remove(saved_item)
-        await self.save()
-        self.log.info(f'Removed saved item "{content}"')
+        # Put the saved item into the database in case the bot dies
+        await self.storage.lpush('saved', data)
+        self.log.info(f'Added saved item "{saved_item.content}"')
+        
+        # This coroutine will spend most of its life here, waiting for the saved
+        # item to ripen, and be executed
+        result = await saved_item.execute()
+        
+        # Remove the completed saved item from the database.  We don't want it
+        # to run twice if the bot gets rebooted
+        await self.storage.lrem('saved', 1, data)
+        self.log.info(f'Saved item "{saved_item.content}" complete, removed' + \
+            ' from database')
         
         
     @commands.group(pass_context=True,no_pm=True,invoke_without_command=True)
@@ -236,7 +264,15 @@ class Schedule(Extension):
         > !schedule `Happy birthday!` on November 12th at 10AM
         The server's region will determine the timezone used
         """
-        await self.bot.send_typing(ctx.message.channel)
+        await self.bot.type()
+        
+        if not self.ready:
+            mention = ctx.message.author.mention
+            await self.bot.say(
+                f"Sorry, {mention}, I'm a bit out-of-sorts right now.\n" + \
+                'Try again later')
+            return
+        
         data = self.CMD.match(ctx.message.content)
         if data:
             content = data['content']
@@ -246,8 +282,16 @@ class Schedule(Extension):
                 f'I will excute `{content}` at ' + \
                 f'{when:%a, %b %d, %Y at %H:%M:%S}', delete_after=6)
             
-            await self.add_saved(content,when,
-                ctx.message.channel,ctx.message.author)
+            saved_item = self.decode_saved(
+                content = content,
+                when = when,
+                channel = ctx.message.channel,
+                author = ctx.message.author,
+            )
+            
+            self.bot.loop.call_soon(
+                functools.partial(self.add_saved, saved_item)
+            )
             
             
         else:
@@ -259,12 +303,13 @@ class Schedule(Extension):
         
     @schedule.command(pass_context=True,no_pm=True)
     async def list(self, ctx):
-        await self.bot.send_typing(ctx.message.channel)
-        m = '\n'.join([str(x) for x in self.commands])
-        await self.bot.say(f'**Scheduled Actions:**\n```\n{m}\n```')
+        await self.bot.type()
+        #m = '\n'.join([str(x) for x in self.commands])
+        #await self.bot.say(f'**Scheduled Actions:**\n```\n{m}\n```')
+        await self.bot.say('Sorry, this commands is currently disabled')
     
     
-    
+
 def setup(bot):
     bot.add_cog(Schedule(bot))
 
