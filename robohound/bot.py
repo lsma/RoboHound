@@ -34,7 +34,7 @@ class RoboHound(commands.Bot, UtilityMixin):
         else:
             self.log.setLevel(logging.INFO)
         
-        self.load_extension('robohound.base_commands')
+        self.load_extension('robohound.base')
     
     
     def run(self, t):
