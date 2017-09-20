@@ -1,7 +1,9 @@
+import datetime
 import discord
 import asyncio
 from discord.ext import commands
 
+from robohound.utils import format_timedelta
 
 class Information:
     """Commands for getting information about discord objects"""
@@ -32,9 +34,25 @@ class Information:
     @info.command(pass_context=True,no_pm=True)
     async def server(self, ctx):
         """Show information about the server"""
-        await self.bot.send_typing(ctx.message.channel)
-        m = '**Server information**' + self.get_info(ctx.message.server)
-        await self.bot.say(m)
+        header = await self.bot.say('Comming right up...')
+        
+        server = ctx.message.server
+        created_at = server.created_at
+        age = format_timedelta(
+            datetime.datetime.now() - created_at,
+            '{y} years, {d} days, {h} hours, {m} minutes, {s} seconds',
+        )
+        
+        m = '**Server Information:**'
+        m += f'\nServer name: {server.name}'
+        m += '\nChannels: '
+        m += ', '.join(ch.mention for ch in server.channels)
+        m += f'\nDefault channel: {server.default_channel.mention}'
+        m += '\nCreated: {:%Y-%m-%d %H:%M:%S}'.format(created_at)
+        m += f'\nServer age: {age}'
+        
+        await self.bot.edit_message(header, new_content=m)
+        
         
     @info.command(pass_context=True,no_pm=True)
     async def channel(self, ctx):

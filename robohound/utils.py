@@ -4,6 +4,7 @@ utils.py
 Utility functions and the bot'd utility mixin class
 """
 import logging
+from math import floor
 from discord.ext.commands import check
 
 logger = logging.getLogger('discord.RoboHound.utils')
@@ -44,4 +45,58 @@ def is_bot_ower():
 
     return check(predicate)
     
+def format_timedelta(td, time_format):
+    """
+    Format a datetime.timedelta into an human-readable string
+    Available items for time_format:
+    {s}   seconds
+    {S}   seconds (zero-padded)
+    {m}   minutes
+    {M}   minutes (zero-padded)
+    {h}   hours
+    {H}   hours (zero-padded)
+    {d}   days
+    {y}   years
+    {st}  total seconds
+    {mt}  total minutes
+    {ht}  total hours
+    {dt}  total days
+    {yt}  total years
+    """
+    seconds = td.total_seconds()
+
+    seconds_total = seconds
+
+    minutes = int(floor(seconds / 60))
+    minutes_total = minutes
+    seconds -= minutes * 60
+
+    hours = int(floor(minutes / 60))
+    hours_total = hours
+    minutes -= hours * 60
+
+    days = int(floor(hours / 24))
+    days_total = days
+    hours -= days * 24
+
+    years = int(floor(days / 365))
+    years_total = years
+    days -= years * 365
     
+    seconds = int(seconds)
+
+    return time_format.format(**{
+        's':  seconds,
+        'S':  str(seconds).zfill(2),
+        'm':  minutes,
+        'M':  str(minutes).zfill(2),
+        'h':  hours,
+        'H':  str(hours).zfill(2),
+        'd':  days,
+        'y':  years,
+        'st': seconds_total,
+        'mt': minutes_total,
+        'ht': hours_total,
+        'dt': days_total,
+        'yt': years_total,
+    })
