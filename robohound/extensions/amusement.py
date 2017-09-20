@@ -46,11 +46,11 @@ class Amusement(Extension):
         await self.bot.say(f)
         
     @commands.command(pass_context=True)
-    @commands.has_role('manage_emojis')
+    @commands.has_permissions(manage_emojis=True)
     async def emojify(self, ctx):
         """Make the last posted image into an emoji (Blocked by discord atm)"""
-        logs = await self.bot.logs_from(ctx.message.channel, limit=10)
-        for message in logs:
+        logs = self.bot.logs_from(ctx.message.channel, limit=10)
+        async for message in logs:
             if message.attachments:
                 att = message.attachments[-1]
                 name = att['filename'].split('.')[0]
