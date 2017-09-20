@@ -9,13 +9,7 @@ from discord.ext import commands
 from .utils import is_bot_ower
 
 class Extension:
-    all_extensions = set()
     def __init__(self, bot):
-        name = self.__class__.__name__
-        if name in self.all_extensions:
-            raise NameError(f"Can't init extension '{name}', already in use")
-        self.all_extensions.add(name)
-        
         self.bot = bot
         self.log = bot.log.getChild(self.__class__.__name__)
         self.storage = None
