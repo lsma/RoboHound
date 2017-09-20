@@ -11,6 +11,7 @@ logger = logging.getLogger('discord.RoboHound.utils')
 logger.setLevel(logging.DEBUG)
 
 class UtilityMixin:
+    """Utility methods for the bot"""
     async def bot_owner_get(self, message, check=None, timeout=None):
         """
         Internal utility function used by plugins that need to confirm something
@@ -37,6 +38,7 @@ class UtilityMixin:
         answer = answer.casefold()
         return answer == 'yes'
 
+
 def is_bot_ower():
     """Decorator which makes sure the command invoker is the bot owner"""
     def predicate(ctx):
@@ -45,6 +47,15 @@ def is_bot_ower():
 
     return check(predicate)
     
+    
+async def fetch(url):
+    """Asynchronously grab a file off the internt"""
+    async with aiohttp.ClientSession() as session:
+        with async_timeout.timeout(10):
+            async with session.get(url) as response:
+                return await response.text()
+        
+
 def format_timedelta(td, time_format):
     """
     Format a datetime.timedelta into an human-readable string

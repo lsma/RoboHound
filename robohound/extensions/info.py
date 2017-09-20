@@ -4,15 +4,11 @@ import asyncio
 from discord.ext import commands
 
 from robohound.utils import format_timedelta
+from robohound.base import Extension
 
-class Information:
+class Information(Extension):
     """Commands for getting information about discord objects"""
-    BL_SERVER = []
-    BL_CHANNEL = []
-    BL_USER = []
     
-    def __init__(self, bot):
-        self.bot = bot
     
     def get_info(self, s):
         m = ''
@@ -57,14 +53,14 @@ class Information:
     @info.command(pass_context=True,no_pm=True)
     async def channel(self, ctx):
         """Show information about the channel"""
-        await self.bot.send_typing(ctx.message.channel)
+        await self.bot.type()
         m = '**Channel information**' + self.get_info(ctx.message.channel)
         await self.bot.say(m)
         
     @info.command(pass_context=True)
     async def user(self, ctx):
         """Show information about the user"""
-        await self.bot.send_typing(ctx.message.channel)
+        await self.bot.type()
         m = '**User information**' + self.get_info(ctx.message.author)
         await self.bot.say(m)
         

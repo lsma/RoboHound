@@ -2,12 +2,11 @@ import discord
 import asyncio
 from discord.ext import commands
 
+from robohound.base import Extension
 
-class Moderation:
+
+class Moderation(Extension):
     """moderation commands"""
-
-    def __init__(self, bot):
-        self.bot = bot
         
     def get_user(self, ctx, member_name):
         return discord.utils.find(

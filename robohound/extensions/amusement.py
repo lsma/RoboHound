@@ -5,19 +5,14 @@ import async_timeout
 import discord
 import asyncio
 from discord.ext import commands
-#from .utils import checks
 
-async def fetch(session, url):
-    with async_timeout.timeout(10):
-        async with session.get(url) as response:
-            return await response.text()
+from robohound.utils import fetch
+from robohound.base import Extension
 
-class Amusement:
+
+class Amusement(Extension):
     """Pointless or recreational commands"""
     NO_EMOJI = "At this time, Discord does not allow bots to create emoji."
-
-    def __init__(self, bot):
-        self.bot = bot
         
     @commands.command()
     async def coin(self):
@@ -60,8 +55,7 @@ class Amusement:
                 att = message.attachments[-1]
                 name = att['filename'].split('.')[0]
                 
-                async with aiohttp.ClientSession() as session:
-                    response = await fetch(session, att['url'])
+                response = await fetch(att['url'])
                 
                 try:
                     await self.bot.create_custom_emoji(message.server, name=name,

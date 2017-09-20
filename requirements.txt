@@ -3,5 +3,6 @@ aioredis
 praw
 aiohttp
 aiofiles
+async-timeout
 parsedatetime
 pytz

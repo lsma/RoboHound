@@ -11,8 +11,8 @@ import atexit
 import discord
 from discord.ext import commands
 from pytz import timezone
-#from .utils import checks
 
+from robohound.base import Extension
 
 
 class Saved:
@@ -125,7 +125,7 @@ class SavedCommand(Saved):
 
 
 
-class Schedule:
+class Schedule(Extension):
     """Commands for time-based actions"""
     TZ_CONVERT = {
         discord.ServerRegion.us_west:       'US/Pacific',
@@ -149,12 +149,10 @@ class Schedule:
     SAVE_FILE = 'extensions/data/schedule.json'
     
     
-    def __init__(self, bot, **options):
-        self.bot = bot
+    def __init__(self, bot, *args, **kwargs):
+        super().__init__(bot)
+        
         self.cal = parsedatetime.Calendar()
-        self.log = options.pop('log', 
-            bot.log.getChild('schedule'))
-        self.log.info('Schedule extension is now active!')
         
         self.commands = []
         
