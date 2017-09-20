@@ -31,7 +31,8 @@ class RoboHound(commands.Bot, UtilityMixin):
         self.storage = None
         
         self.log = kwargs.get('log', logging.getLogger()).getChild('RoboHound')
-        if kwargs.get('debug', None):
+        self.debug = kwargs.get('debug', False)
+        if self.debug:
             self.log.setLevel(logging.DEBUG)
         else:
             self.log.setLevel(logging.INFO)

@@ -143,6 +143,16 @@ class Base(Extension):
             await self.bot.say(f'`{key}`:\n```{value}```')
         else:
             await self.bot.say(f"*Couldn't find* `{key}`")
+            
+    @redis.command()
+    @is_bot_ower()
+    async def all(self, pattern):
+        """Retreive all keys that match 'pattern'"""
+        value = await self.bot.storage.keys(pattern)
+        if value:
+            await self.bot.say(f'`{pattern}`:\n```{value}```')
+        else:
+            await self.bot.say(f"*Couldn't find* `{pattern}`")
 
 def setup(bot):
     bot.add_cog(Base(bot))

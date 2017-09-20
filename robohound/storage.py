@@ -30,7 +30,14 @@ class Storage():
     def get_namespace(self, n, sep=':'):
         new_n = f'{self.namespace}{n}{sep}'
         return Storage(new_n, self.redis, self)
-
+    
+    async def bgsave(self):
+        return await self.redis.bgsave()
+        
+    async def keys(self, pattern):
+        p = self.namespace + pattern
+        return await self.redis.keys(p)
+        
     async def set(self, key, value, expire=0):
         key = self.namespace + key
         return await self.redis.set(
@@ -118,3 +125,7 @@ class Storage():
     async def rpush(self, key, value, *values):
         key = self.namespace + key
         return await self.redis.rpush(key, value, *values)        
+
+    async def rpop(self, key, *values):
+        key = self.namespace + key
+        return await self.redis.rpop(key, *values)
