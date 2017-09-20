@@ -118,6 +118,8 @@ class Moderation(Extension):
     @commands.has_permissions(manage_messages=True)
     async def purge(self, ctx, *args:str):
         """Delete lots messages"""
+        await self.bot.type()
+        
         limit = 5
         check = None
         m = None
@@ -139,10 +141,10 @@ class Moderation(Extension):
                 if member:
                     limit = 5
                     check = lambda m: m.author == member
-                    m = 'Deleted 5 messages from {}'.format(member.name)
+                    m = f'Deleted 5 messages from {member.name}'
                 else:
                     go = False
-                    m = "I don't know what to do with {}".format(arg)
+                    m = f"I don't know what to do with {arg}"
             
         else:
             if args[0].isdecimal():
@@ -158,7 +160,8 @@ class Moderation(Extension):
             
             else:
                 go = False
-                m = 'First argument must specify the number of messages to delete'
+                m = 'First argument must specify the number of messages to ' + \
+                    'delete'
             
         if go:
             if limit > 10:
@@ -177,7 +180,8 @@ class Moderation(Extension):
                 
             await self.bot.delete_message(ctx.message)
             await asyncio.sleep(0.5)
-            await self.bot.purge_from(ctx.message.channel, limit=limit, check=check)
+            await self.bot.purge_from(
+                ctx.message.channel, limit=limit, check=check)
                     
         reply = await self.bot.say(m)
         await asyncio.sleep(5)
