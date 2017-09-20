@@ -18,7 +18,17 @@ class Extension:
         
         self.bot = bot
         self.log = bot.log.getChild(self.__class__.__name__)
-        self.storage = bot.storage.get_namespace(self.__class__.__name__)
+        self.storage = None
+        
+        self.bot.loop.create_task(self.init_storage())
+    
+    async def init_storage(self):
+        await self.bot.wait_until_ready()
+        self.storage = self.bot.storage.get_namespace(self.__class__.__name__)
+        self.log.debug('Storage initialized')
+        
+        result = await self.storage.set('_', self.__class__.__name__)
+        self.log.info(f'Storage up and running (test SET returned {result})')
 
 
 class Base(Extension):

@@ -14,9 +14,9 @@ class Db:
     
     async def start(self, address):
         self.redis = await aioredis.create_redis(
-            address, loop = self._loop,encoding = 'utf-8')
+            address, loop=self._loop, encoding='utf-8')
     
-    async def get_namespace(self, n, sep=':'):
+    def get_namespace(self, n, sep=':'):
         return Storage(n + sep, self.redis)
         
         
@@ -26,7 +26,7 @@ class Storage():
         self.namespace = namespace
         self.redis = redis
         
-    async def get_namespace(self, n, sep=':'):
+    def get_namespace(self, n, sep=':'):
         new_n = f'{self.namespace}{n}{sep}'
         return Storage(new_n, self.redis)
 

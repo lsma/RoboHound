@@ -26,15 +26,16 @@ class RoboHound(commands.Bot, UtilityMixin):
         super().__init__(command_prefix='!', description=self.__doc__)
         
         self._owner_id = kwargs.get('owner_id')
+        
         self._db = Db(kwargs.get('redis_address'))
         self.storage = None
+        
         self.log = kwargs.get('log', logging.getLogger()).getChild('RoboHound')
         if kwargs.get('debug', None):
             self.log.setLevel(logging.DEBUG)
         else:
             self.log.setLevel(logging.INFO)
         
-        self.load_extension('robohound.base')
     
     
     def run(self, t):
@@ -52,8 +53,10 @@ class RoboHound(commands.Bot, UtilityMixin):
             self.log.warning("Couldn't set game status")
             raise e
             
+        self.storage = self._db.get_namespace('')
         self.owner = await self.get_user_info(self._owner_id)
-        self.storage = await self._db.get_namespace('')
+        
+        self.load_extension('robohound.base')
     
     async def on_command_error(self, exception, ctx):
         self.log.error(f'Ignoring exception in command "{ctx.command}"')
