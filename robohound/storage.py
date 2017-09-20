@@ -17,18 +17,19 @@ class Db:
             address, loop=self._loop, encoding='utf-8')
     
     def get_namespace(self, n, sep=':'):
-        return Storage(n + sep, self.redis)
+        return Storage(n + sep, self.redis, self)
         
         
 class Storage():
     """Adds a prefix to Redis"""
-    def __init__(self, namespace, redis):
+    def __init__(self, namespace, redis, parent):
         self.namespace = namespace
         self.redis = redis
+        self.parent = parent
         
     def get_namespace(self, n, sep=':'):
         new_n = f'{self.namespace}{n}{sep}'
-        return Storage(new_n, self.redis)
+        return Storage(new_n, self.redis, self)
 
     async def set(self, key, value, expire=0):
         key = self.namespace + key
