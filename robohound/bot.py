@@ -21,7 +21,7 @@ class RoboHound(commands.Bot, UtilityMixin):
         """
         owner_id        ID of discord useer who is running the bot (ie you)
         redis_address   tuple in the form (hostname, port) of a redis server
-        log             Python logging object.  Defaults to *.bot
+        log             Python logging object.  RoboHound will log to a child
         """
         super().__init__(command_prefix='!', description=self.__doc__)
         
@@ -56,11 +56,13 @@ class RoboHound(commands.Bot, UtilityMixin):
         self.storage = self._db.get_namespace('')
         self.owner = await self.get_user_info(self._owner_id)
         
+        # This extensions holds most of the bot's base capabilities
         self.load_extension('robohound.base')
     
     async def on_command_error(self, exception, ctx):
         self.log.error(f'Ignoring exception in command "{ctx.command}"')
-        tb = ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__))
+        tb = ''.join(traceback.format_exception( \
+            type(exception), exception, exception.__traceback__))
         self.log.error(tb)
         
             
