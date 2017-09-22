@@ -35,6 +35,7 @@ class Base(Extension):
     
     @commands.command()
     async def about(self):
+        """Print a short message about the bot"""
         await self.bot.say(self.bot.__class__.__doc__)
     
     

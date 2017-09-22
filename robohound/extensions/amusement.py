@@ -33,7 +33,7 @@ class Amusement(Extension):
     
     @commands.command()
     async def fortune(self):
-        """Pick something from a list of words"""
+        """Print a random, hopefully interesting, adage"""
         await self.bot.type()
         
         app = await asyncio.create_subprocess_exec( \
