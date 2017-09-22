@@ -47,7 +47,7 @@ class Base(Extension):
     async def extension(self):
         """extension command group"""
         await self.bot.type()
-        sub_commands = '`, `'.join(self.extension.commands)
+        sub_commands = '`, `'.join(self.bot.extension.commands)
         m = f'Available sub-commands: `{sub_commands}`'
         await self.bot.say(m)
         m = 'Current active extensions:'
@@ -63,7 +63,7 @@ class Base(Extension):
         await self.bot.type()
         ext = ext.strip()
         
-        if f'{self.EXT_PREFIX}{ext}' in self.extensions:
+        if f'{self.EXT_PREFIX}{ext}' in self.bot.extensions:
             await self.bot.say(f'Extension `{ext}` has already been loaded' + \
                 f'\nTry `!ext reload {ext}`')
             self.log.info(f"Didn't load {ext}: already loaded")
@@ -92,7 +92,7 @@ class Base(Extension):
         await self.bot.type()
         ext = ext.strip()
     
-        if f'{self.EXT_PREFIX}{ext}' not in self.extensions:
+        if f'{self.EXT_PREFIX}{ext}' not in self.bot.extensions:
             await self.bot.say(f'Extension `{ext}` was never loaded')
             self.log.info(f"Didn't dump {ext}: not an active extension")
             return
@@ -115,7 +115,7 @@ class Base(Extension):
         await self.bot.type()
         ext = ext.strip()
     
-        if f'{self.EXT_PREFIX}{ext}' not in self.extensions:
+        if f'{self.EXT_PREFIX}{ext}' not in self.bot.extensions:
             await self.bot.say(f'Extension `{ext}` was never loaded' + \
                 f'\nTry `!ext load {ext}`')
             return
