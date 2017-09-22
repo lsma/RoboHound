@@ -4,6 +4,8 @@ base_commands.py
 Base and owner-only commands (extension managment, diagnostics, bot moderation, 
 etc.) for the bot.
 """
+import os
+import re
 from discord.ext import commands
 
 from .utils import is_bot_ower
@@ -32,6 +34,7 @@ class Base(Extension):
     """
     
     EXT_PREFIX = 'robohound.extensions.'
+    EXTENSION_FILENAME = re.compile('(?P<ext>\w+)\.py')
     
     @commands.command()
     async def about(self):
@@ -39,7 +42,7 @@ class Base(Extension):
         await self.bot.say(self.bot.__class__.__doc__)
     
     
-    @commands.group(aliases=['ext'], hidden=False, invoke_without_command=True)
+    @commands.group(aliases=['ext'], hidden=True, invoke_without_command=True)
     @is_bot_ower()
     async def extension(self):
         """extension command group"""
@@ -59,14 +62,26 @@ class Base(Extension):
         """Load extension <ext>"""
         await self.bot.type()
         ext = ext.strip()
-    
+        
+        if f'{self.EXT_PREFIX}{ext}' in self.extensions:
+            await self.bot.say(f'Extension `{ext}` has already been loaded' + \
+                f'\nTry `!ext reload {ext}`')
+            self.log.info(f"Didn't load {ext}: already loaded")
+            return
+            
         try:
             self.bot.load_extension(f'{self.EXT_PREFIX}{ext}')
-            self.log.info(f'Loaded {ext}')
+            self.log.info(f'Loaded "{ext}"')
             await self.bot.say(f'Extension `{ext}` has been loaded')
+            
+        except ModuleNotFoundError as e:
+            self.log.info(f'Failed to load "{ext}"')
+            await self.bot.say("I couldn't find any extension by that " + \
+                f'name (`{ext}`)')
     
         except Exception as e:
-            await self.bot.say('Sorry, I ran into an issue loading that extension')
+            await self.bot.say( \
+                'Sorry, I ran into an issue loading that extension')
             raise e
 
 
@@ -77,13 +92,19 @@ class Base(Extension):
         await self.bot.type()
         ext = ext.strip()
     
+        if f'{self.EXT_PREFIX}{ext}' not in self.extensions:
+            await self.bot.say(f'Extension `{ext}` was never loaded')
+            self.log.info(f"Didn't dump {ext}: not an active extension")
+            return
+            
         try:
             self.bot.unload_extension(f'{self.EXT_PREFIX}{ext}')
             self.log.info(f'Dumped {ext}')
             await self.bot.say(f'Extension `{ext}` has been dumped')
     
         except Exception as e:
-            await self.bot.say('Sorry, I ran into an issue dumping that extension')
+            await self.bot.say( \
+                'Sorry, I ran into an issue dumping that extension')
             raise e
 
 
@@ -94,6 +115,11 @@ class Base(Extension):
         await self.bot.type()
         ext = ext.strip()
     
+        if f'{self.EXT_PREFIX}{ext}' not in self.extensions:
+            await self.bot.say(f'Extension `{ext}` was never loaded' + \
+                f'\nTry `!ext load {ext}`')
+            return
+            
         try:
             self.bot.unload_extension(f'{self.EXT_PREFIX}{ext}')
             self.log.info(f'Dumped {ext}')
@@ -103,8 +129,16 @@ class Base(Extension):
             
             await self.bot.say(f'Extension `{ext}` has been reloaded')
     
+        except ModuleNotFoundError as e:
+            self.log.info(f'Failed to reload "{ext}"')
+            self.log.warning(f'Module "{ext}" ' + \
+                'was loaded at some point, but is now unavailable!')
+            await self.bot.say("I couldn't find any extension by that " + \
+                f'name (`{ext}`)')
+    
         except Exception as e:
-            await self.bot.say('Sorry, I ran into an issue reloading that extension')
+            await self.bot.say( \
+                'Sorry, I ran into an issue reloading that extension')
             raise e
 
 
@@ -113,9 +147,28 @@ class Base(Extension):
     async def list(self):
         """List all extensions"""
         await self.bot.type()
-        m = 'Current active extensions:'
-        for e in self.bot.extensions:
-            m += '\n `{}`'.format(e.split('.')[-1])
+        
+        all_ = set()
+        for ext in os.listdir('./robohound/extensions'):
+            match = self.EXTENSION_FILENAME.match(ext)
+            if match:
+                all_.add(match['ext'])
+        
+        active = set(x.split('.')[-1] for x in self.bot.extensions)
+        
+        inactive = list(all_ - active)
+        inactive.sort()
+        
+        active = list(active)
+        active.sort()
+        
+        m = '**Active extensions:**\n`'
+        m += '`\n`'.join(active)
+        
+        m += '`\n**Inactive extensions:**\n`'
+        m += '`\n`'.join(inactive)
+        m += '`'
+        
         await self.bot.say(m)
 
 
