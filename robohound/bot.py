@@ -42,7 +42,8 @@ class RoboHound(commands.Bot, UtilityMixin):
     def run(self, t):
         """Start RoboHound"""
         super().run(t, reconnect=True)
-        
+    
+    
         
     async def on_ready(self):
         self.log.info('Connected and ready to go')
@@ -59,12 +60,22 @@ class RoboHound(commands.Bot, UtilityMixin):
         
         # This extensions holds most of the bot's base capabilities
         self.load_extension('robohound.base')
+        self.add_command(self.reload_base)
     
     async def on_command_error(self, exception, ctx):
         self.log.error(f'Ignoring exception in command "{ctx.command}"')
         tb = ''.join(traceback.format_exception( \
             type(exception), exception, exception.__traceback__))
         self.log.error(tb)
+    
+    @commands.command(hidden=True)
+    @is_bot_ower()
+    async def reload_base(self):
+        self.log.debug('Unloading base extension')
+        self.unload_extension('robohound.base')
+        self.log.debug('Reloading base extension')
+        self.load_extension('robohound.base')
+        await self.say('Success')
         
             
         
