@@ -336,7 +336,7 @@ class Schedule(Extension):
         await self._db_add_saved_item(s, save_db)
         self._indices_add(s)
         
-        self._tasks[saved_item] = \
+        self._tasks[s] = \
             self.bot.loop.create_task(self._execute(s))
     
     
