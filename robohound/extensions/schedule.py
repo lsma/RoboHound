@@ -10,6 +10,7 @@ import parsedatetime
 import pytz
 import atexit
 import discord
+from concurrent.futures import CancelledError
 from discord.ext import commands
 from pytz import timezone
 
@@ -53,30 +54,43 @@ class Saved:
             raise TypeError('"author" must be a discord.Member, ' + \
                 'discord.User, or str')
                 
-        self._canceled = None
+        self._canceled = False
+        self._completed = False
     
+    def format(self, with_channel=False, with_server=False):
+        m = f'{self.author.name} scheduled "{self.content}" for ' + \
+            f'{self.when:%a, %b %d, %Y at %H:%M:%S}'
+        if with_channel:
+            m += f' in {self.channel.mention}'
+        if with_server:
+            m += f' in `{self.channel.server.name}`'
+        return m
     
     @property
     def wait_time(self):
         now = datetime.datetime.now(tz=self.when.tzinfo)
         return (self.when - now).total_seconds()
     
-    
     @property
     def overdue(self):
         return (self.wait_time < 0)
         
+    def cancel(self):
+        self._canceled = True
+        
+    @property
+    def completed(self):
+        return self._completed
+        
+    @property
+    def canceled(self):
+        return self._canceled
         
     async def execute(self):
-        if not self.overdue:
+        if not self.overdue and not self.canceled:
             await asyncio.sleep(self.wait_time)
             return 1
         
-    
-    def cancel(self):
-        self._canceled = True
-    
-    
     def encode(self, more={}):
         """Encode this object into a dict"""
         d = {'content': self.content,
@@ -88,6 +102,7 @@ class Saved:
         
         return d
     
+    
     @classmethod
     def decode(class_, d, bot):
         when = datetime.datetime.fromtimestamp(d['when'])
@@ -96,15 +111,19 @@ class Saved:
         return class_(bot, d['content'], when, channel, author)
 
 
+
 class SavedMessage(Saved):
     """This object holds a message for the bot to say at a certain time"""
     def __init__(self, bot, message, when, channel, author):
         super().__init__(bot, message, when, channel, author)
     
     async def execute(self):
-        await super().execute()
-        message = await self.bot.send_message(self.channel, self.content)
-        await self.bot.add_reaction(message, '\u23F2')
+        resp = await super().execute()
+        if resp:
+            message = await self.bot.send_message(self.channel, self.content)
+            await self.bot.add_reaction(message, '\u23F2')
+            self._completed = True
+        return resp
 
 
 
@@ -116,22 +135,25 @@ class SavedCommand(Saved):
             
     
     async def execute(self):
-        m = discord.Message(
-            content = self.content,
-            channel = self.channel,
-            author = {
-                'username': self.author.name,
-                'discriminator': self.author.discriminator,
-                'id': self.author.id,
-                'bot': self.bot,
-            },
-            timestamp = datetime.datetime.now().isoformat(),
-            reactions = [],
-        )
-        await super().execute()
-        await self.bot.send_message(self.channel,
-            f'Executing ``{self.content}`` (schedule by {self.author.mention})')
-        await self.bot.process_commands(m)
+        resp = await super().execute()
+        if resp:
+            m = discord.Message(
+                content = self.content,
+                channel = self.channel,
+                author = {
+                    'username': self.author.name,
+                    'discriminator': self.author.discriminator,
+                    'id': self.author.id,
+                    'bot': self.bot,
+                },
+                timestamp = datetime.datetime.now().isoformat(),
+                reactions = [],
+            )
+            await self.bot.send_message(self.channel, 'Executing ' + \
+                f'``{self.content}`` (schedule by {self.author.mention})')
+            await self.bot.process_commands(m)
+            self._completed = True
+        return resp
 
 
 
@@ -167,6 +189,9 @@ class Schedule(Extension):
         
         self.ready = False
         self.bot.loop.create_task(self.load())
+        
+        self.indices  = {'author':{}, 'channel':{}, 'server':{}}
+        self._tasks = {}
     
     
     def parse(self, server, message):
@@ -211,9 +236,11 @@ class Schedule(Extension):
             # We'll need to re-save the db after weeding out overdue actions
             async def post_load_db_save():
                 await asyncio.sleep(10)
+                self.log.debug('Post-load db save')
                 await self.storage.bgsave()
                 
             self.bot.loop.create_task(post_load_db_save())
+    
     
     def decode_saved(self,content,when,channel,author):
         """
@@ -233,31 +260,90 @@ class Schedule(Extension):
             author,
         )
     
+    def _indices_add(self, s):
+        """Add a Saved object to the search indicies"""
+        self.log.debug(f'Adding item "{s.content}" to the indicies')
+        if s.author.id in self.indices['author']:
+            self.indices['author'][s.author.id].append(s)
+        else:
+            self.indices['author'][s.author.id] = [s,]
+
+        if s.channel.id in self.indices['channel']:
+            self.indices['channel'][s.channel.id].append(s)
+        else:
+            self.indices['channel'][s.channel.id] = [s,]
+            
+        if s.channel.server.id in self.indices['server']:
+            self.indices['server'][s.channel.server.id].append(s)
+        else:
+            self.indices['server'][s.channel.server.id] = [s,]
+            
+    def _indices_remove(self, s):
+        """Remove a Saved object from the search indicies"""
+        self.log.debug(f'Removing item "{s.content}" from the indicies')
+        self.indices['author'][s.author.id].remove(s)
+        self.indices['channel'][s.channel.id].remove(s)
+        self.indices['server'][s.channel.server.id].remove(s)
     
-    async def add_saved(self, saved_item, save_db=True):
+    async def _db_add_saved_item(self, s, save_db=True):
+        """
+        Save a Saved object the database
+        Note that this method will not check to see if the item is already on
+        the database, so it will create duplicates
+        """
+        self.log.debug(f'Saving item "{s.content}" to the database')
+        data = json.dumps(s.encode())
+        
+        # Put the saved item into the database in case the bot dies
+        await self.storage.lpush('saved', data)
+        if self.bot.debug and save_db:
+            await self.storage.bgsave()
+        self.log.info(f'Added saved item "{s.content}"')
+        
+        
+    async def _db_remove_saved_item(self, s):
+        """Remove a Saved object from the database"""
+        self.log.debug(f'Removing item "{s.content}" from the database')
+        data = json.dumps(s.encode())
+        
+        responce = await self.storage.lrem('saved', 1, data)
+        
+        if responce:
+            self.log.info(f'Removed "{s.content}" from database')
+        else:
+            e = f'Failed to remove "{s.content}" from database: ' + \
+                'no such entry'
+            self.log.warning(e)
+            raise Exception(e)
+        
+    
+    async def _execute(self, s):
+        self.log.debug(f'Executing item "{s.content}"')
+        try:
+            result = await s.execute()
+        finally:
+            #remove the item after 
+            self._indices_remove(s)
+            await self._db_remove_saved_item(s)
+        
+    
+    async def add_saved(self, s, save_db=True):
         """
         Makes a new saved item
         This coroutine will not complete until the saved item has been executed
         """
-        data = json.dumps(saved_item.encode())
+        self.log.debug(f'Adding new item: "{s.content}"')
+        await self._db_add_saved_item(s, save_db)
+        self._indices_add(s)
         
-        # Put the saved item into the database in case the bot dies
-        await self.storage.lpush('saved', data)
-        if self.bot.debug and save_db: 
-            await self.storage.bgsave()
-        self.log.info(f'Added saved item "{saved_item.content}"')
+        self._tasks[saved_item] = \
+            self.bot.loop.create_task(self._execute(s))
+    
+    
+    def _cancel_saved(self, s):
+        self._tasks[s].cancel()
         
-        # This coroutine will spend most of its life here, waiting for the saved
-        # item to ripen, and be executed
-        result = await saved_item.execute()
-        
-        # Remove the completed saved item from the database.  We don't want it
-        # to run twice if the bot gets rebooted
-        await self.storage.lrem('saved', 1, data)
-        self.log.info(f'Saved item "{saved_item.content}" complete, removed' + \
-            ' from database')
-        
-        
+    
     @commands.group(pass_context=True,invoke_without_command=True)
     async def schedule(self, ctx, content:str, when:str):
         """
@@ -313,81 +399,116 @@ class Schedule(Extension):
                 f'[some time]``')
             await self.bot.say(f'Try `!help {ctx.command}`')
         
-    @schedule.group(pass_context=True,invoke_without_command=True)
+        
+    @schedule.command(pass_context=True)
     async def delete(self, ctx):
         """Delete an upcoming scheduled action made by you"""
         await self.bot.say('This command is under construction')
         
-    @schedule.group(pass_context=True,invoke_without_command=True)
+    @schedule.group(pass_context=True)
     async def list(self, ctx):
+        """Lists all your scheduled actions, or by channel or server"""
+        if ctx.invoked_subcommand is None:
+            await self.bot.say('You must use a sub-command')
+            sub_commands = '`, `'.join(self.list.commands)
+            await self.bot.say(f'Available sub-commands: `{sub_commands}`')
+    
+    
+    @list.command(pass_context=True)
+    async def channel(self, ctx):
         """List all upcoming scheduled actions you've made in this channel"""
-        await self.bot.say('This command is under construction')
+        self.bot.type()
+        by_author = set(self.indices['author'].get(ctx.message.author.id, []))
+        by_channel = set(self.indices['channel'].get(ctx.message.channel.id,[]))
+        items = list(by_author & by_channel)
+        items.sort(key=lambda s: s.when.timestamp())
+        if items:
+            m = '\n'.join(str(i) for i in items)
+            await self.bot.say(m)
+        else:
+            await self.bot.say('No scheduled items',delete_after=6)
         
     @list.command(pass_context=True)
     async def server(self, ctx):
         """List all upcoming scheduled actions you've made in this server"""
-        await self.bot.say('This command is under construction')
+        self.bot.type()
+        by_author = set(self.indices['author'].get(ctx.message.author.id, []))
+        by_server = set(self.indices['server'].get(ctx.message.server.id,[]))
+        items = list(by_author & by_server)
+        items.sort(key=lambda s: s.when.timestamp())
+        if items:
+            m = '\n'.join(i.format(True) for i in items)
+            await self.bot.say(m)
+        else:
+            await self.bot.say('No scheduled items',delete_after=6)
         
     @list.command(pass_context=True)
     async def all(self, ctx):
         """List all upcoming scheduled actions you've made anywhere"""
-        await self.bot.say('This command is under construction')
+        self.bot.type()
+        items = self.indices['author'].get(ctx.message.author.id, [])
+        items.sort(key=lambda s: s.when.timestamp())
+        if items:
+            m = '\n'.join(i.format(True, True) for i in items)
+            await self.bot.say(m)
+        else:
+            await self.bot.say('No scheduled items',delete_after=6)
         
-    @schedule.group(pass_context=True,invoke_without_command=True)
-    async def admin(self, ctx):
-        """Commands for server admins to manage scheduled actions"""
-        sub_commands = '`, `'.join(self.schedule.admin.commands)
-        m = f'Available sub-commands: `{sub_commands}`'
-        await self.bot.say(m)
+    #@schedule.group(pass_context=True,invoke_without_command=True)
+    #async def admin(self, ctx):
+        #"""Commands for server admins to manage scheduled actions"""
+        #sub_commands = '`, `'.join(self.schedule.admin.commands)
+        #m = f'Available sub-commands: `{sub_commands}`'
+        #await self.bot.say(m)
      
-    @admin.command(pass_context=True)
-    async def delete(self, ctx):
-        """Delete an upcoming scheduled action made in this server"""
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def delete(self, ctx):
+        #"""Delete an upcoming scheduled action made in this server"""
+        #await self.bot.say('This command is under construction')
         
-    @admin.command(pass_context=True)
-    async def list(self, ctx):
-        """List all upcoming scheduled actions made in this server"""
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def list(self, ctx):
+        #"""List all upcoming scheduled actions made in this server"""
+        #await self.bot.say('This command is under construction')
         
-    @admin.command(pass_context=True)
-    async def delete_all(self, ctx):
-        """Delete all upcoming scheduled actions made in this server"""
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def delete_all(self, ctx):
+        #"""Delete all upcoming scheduled actions made in this server"""
+        #await self.bot.say('This command is under construction')
         
-    @admin.command(pass_context=True)
-    async def blacklist(self, ctx):
-        """
-        Block specific user(s) or role(s) from using !schedule
-        This puts the schedule extension into blacklist mode for the server:
-        All members can use the command, except those who have been blacklisted.
-        """
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def blacklist(self, ctx):
+        #"""
+        #Block specific user(s) or role(s) from using !schedule
+        #This puts the schedule extension into blacklist mode for the server:
+        #All members can use the command, except those who have been blacklisted.
+        #"""
+        #await self.bot.say('This command is under construction')
         
-    @admin.command(pass_context=True)
-    async def unblacklist(self, ctx):
-        """
-        Remove specific user(s) or role(s) from the blacklist
-        This puts the schedule extension into blacklist mode for the server.
-        """
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def unblacklist(self, ctx):
+        #"""
+        #Remove specific user(s) or role(s) from the blacklist
+        #This puts the schedule extension into blacklist mode for the server.
+        #"""
+        #await self.bot.say('This command is under construction')
     
-    @admin.command(pass_context=True)
-    async def whitelist(self, ctx):
-        """
-        Allow specific user(s) or role(s) to use !schedule
-        This puts the schedule extension into whitelist mode for the server:
-        only members who have been whitelisted can use the command.
-        """
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def whitelist(self, ctx):
+        #"""
+        #Allow specific user(s) or role(s) to use !schedule
+        #This puts the schedule extension into whitelist mode for the server:
+        #only members who have been whitelisted can use the command.
+        #"""
+        #await self.bot.say('This command is under construction')
     
-    @admin.command(pass_context=True)
-    async def unwhitelist(self, ctx):
-        """
-        Remove specific user(s) or role(s) from the whitelist
-        This puts the schedule extension into whitelist mode for the server.
-        """
-        await self.bot.say('This command is under construction')
+    #@admin.command(pass_context=True)
+    #async def unwhitelist(self, ctx):
+        #"""
+        #Remove specific user(s) or role(s) from the whitelist
+        #This puts the schedule extension into whitelist mode for the server.
+        #"""
+        #await self.bot.say('This command is under construction')
     
     
 

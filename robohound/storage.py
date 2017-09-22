@@ -22,6 +22,9 @@ class Db:
         
 class Storage():
     """Adds a prefix to Redis"""
+    def __getitem__(self, key):
+        return self.get_namespace(key)
+    
     def __init__(self, namespace, redis, parent):
         self.namespace = namespace
         self.redis = redis

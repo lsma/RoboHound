@@ -124,11 +124,13 @@ class Base(Extension):
         """Commands for raw database editing !!VERY DANGEROUS!!"""
         if ctx.invoked_subcommand is None:
             await self.bot.say('You must use a sub-command')
+            sub_commands = '`, `'.join(self.redis.commands)
+            await self.bot.say(f'Available sub-commands: `{sub_commands}`')
     
     
     @redis.command()
     @is_bot_ower()
-    async def set(self, key, value):
+    async def set(self, key:str, value:str):
         """Save a value under key (temporary test command)"""
         await self.bot.storage.set(key, value)
         await self.bot.say('Stored `{}` under `{}`'.format(value,key))
@@ -136,7 +138,7 @@ class Base(Extension):
         
     @redis.command()
     @is_bot_ower()
-    async def get(self, key):
+    async def get(self, key:str):
         """Retreive a value under key (temporary test command)"""
         value = await self.bot.storage.get(key)
         if value:
@@ -146,13 +148,21 @@ class Base(Extension):
             
     @redis.command()
     @is_bot_ower()
-    async def all(self, pattern):
+    async def all(self, pattern:str):
         """Retreive all keys that match 'pattern'"""
         value = await self.bot.storage.keys(pattern)
         if value:
             await self.bot.say(f'`{pattern}`:\n```{value}```')
         else:
             await self.bot.say(f"*Couldn't find* `{pattern}`")
+            
+    @redis.command()
+    @is_bot_ower()
+    @commands.cooldown(1,20.0)
+    async def save(self):
+        """Save the redis database to disk"""
+        value = await self.bot.storage.bgsave()
+        await self.bot.say(f'`{value}`')
 
 def setup(bot):
     bot.add_cog(Base(bot))
