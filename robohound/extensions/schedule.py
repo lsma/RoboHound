@@ -21,7 +21,7 @@ class Saved:
     """Base class for saved items"""
     def __str__(self):
         return f'{self.author.name} scheduled "{self.content}" for ' + \
-            f'{self.when:%a, %b %d, %Y at %H:%M:%S}'
+            f'{self.when:%a, %b %d, %Y at %H:%M:%S %Z}'
         
     def __init__(self, bot, content, when, channel, author):
         self.bot = bot
@@ -58,8 +58,7 @@ class Saved:
         self._completed = False
     
     def format(self, with_channel=False, with_server=False):
-        m = f'{self.author.name} scheduled "{self.content}" for ' + \
-            f'{self.when:%a, %b %d, %Y at %H:%M:%S}'
+        m = str(self)
         if with_channel:
             m += f' in {self.channel.mention}'
         if with_server:
@@ -389,7 +388,7 @@ class Schedule(Extension):
             self.bot.loop.create_task(self.add_saved(saved_item))
             
             await self.bot.say(
-                f'I will excute `{content}` at ' + \
+                f'I will excute `{content}` on ' + \
                 f'{when:%a, %b %d, %Y at %H:%M:%S}', delete_after=6)
             
         else:
