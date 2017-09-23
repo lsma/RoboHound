@@ -453,22 +453,50 @@ class Schedule(Extension):
         else:
             await self.bot.say('No scheduled items',delete_after=6)
         
-    #@schedule.group(pass_context=True,invoke_without_command=True)
-    #async def admin(self, ctx):
-        #"""Commands for server admins to manage scheduled actions"""
-        #sub_commands = '`, `'.join(self.schedule.admin.commands)
-        #m = f'Available sub-commands: `{sub_commands}`'
-        #await self.bot.say(m)
+    @schedule.group(pass_context=True)
+    async def admin(self, ctx):
+        """Commands for server admins to manage scheduled actions"""
+        if ctx.invoked_subcommand is None:
+            await self.bot.say('You must use a sub-command')
+            sub_commands = '`, `'.join(self.schedule.admin.commands)
+            await self.bot.say(f'Available sub-commands: `{sub_commands}`')
      
     #@admin.command(pass_context=True)
     #async def delete(self, ctx):
         #"""Delete an upcoming scheduled action made in this server"""
         #await self.bot.say('This command is under construction')
         
-    #@admin.command(pass_context=True)
-    #async def list(self, ctx):
-        #"""List all upcoming scheduled actions made in this server"""
-        #await self.bot.say('This command is under construction')
+    @admin.group(pass_context=True)
+    async def list(self, ctx):
+        """List all scheduled actions by channel, or in the whole server"""
+        if ctx.invoked_subcommand is None:
+            await self.bot.say('You must use a sub-command')
+            sub_commands = '`, `'.join(self.schedule.admin.list.commands)
+            await self.bot.say(f'Available sub-commands: `{sub_commands}`')
+    
+    @list.command(pass_context=True)
+    async def channel(self, ctx):
+        """List all upcoming scheduled actions made in this channel"""
+        self.bot.type()
+        items = self.indices['channel'].get(ctx.message.channel.id, [])
+        items.sort(key=lambda s: s.when.timestamp())
+        if items:
+            m = '\n'.join(i.format(True) for i in items)
+            await self.bot.say(m)
+        else:
+            await self.bot.say('No scheduled items',delete_after=6)
+            
+    @list.command(pass_context=True)
+    async def server(self, ctx):
+        """List all upcoming scheduled actions made in this server"""
+        self.bot.type()
+        items = self.indices['server'].get(ctx.message.server.id, [])
+        items.sort(key=lambda s: s.when.timestamp())
+        if items:
+            m = '\n'.join(i.format(True) for i in items)
+            await self.bot.say(m)
+        else:
+            await self.bot.say('No scheduled items',delete_after=6)
         
     #@admin.command(pass_context=True)
     #async def delete_all(self, ctx):
