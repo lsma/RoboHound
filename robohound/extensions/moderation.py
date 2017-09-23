@@ -7,40 +7,29 @@ from robohound.base import Extension
 
 class Moderation(Extension):
     """moderation commands"""
-        
-    def get_user(self, ctx, member_name):
-        return discord.utils.find(
-            lambda x: member_name in (x.name,x.mention,x.nick),
-            ctx.message.server.members)
-            
-    def get_role(self, ctx, role_name):
-        return discord.utils.find(
-            lambda x: role_name in (x.name,x.mention),
-            ctx.message.server.members)
-    
     @commands.command(pass_context=True,no_pm=True)
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx,member_name:str):
         """Kick a member"""
-        member = self.get_user(ctx, member_name)
+        member = self.bot.get_user(ctx, member_name)
         if member:
             await self.bot.kick(member)
         else:
             await self.bot.say("Sorry, couldn't find that member")
     
-        await self.bot.say('A OK! {} has been kicked'.format(member.name))
+        await self.bot.say(f'A OK! {member.name} has been kicked')
     
     @commands.command(pass_context=True,no_pm=True)
     @commands.has_permissions(ban_members=True)
     async def ban(self, *,member_name:str):
         """Ban a member"""
-        member = self.get_user(ctx, member_name)
+        member = self.bot.get_user(ctx, member_name)
         if member:
             await self.bot.ban(member, 0)
         else:
             await self.bot.say("Sorry, couldn't find that member")
     
-        await self.bot.say('A OK! {} has been banned'.format(member.name))
+        await self.bot.say(f'A OK! {member.name} has been banned')
     
     
     @commands.command(pass_context=True,no_pm=True)
@@ -50,7 +39,7 @@ class Moderation(Extension):
         bans = await self.bot.get_bans(ctx.message.server)
         if bans:
             bans = '\n'.join(['{0.name} ({0.id})'.format(u) for u in bans])
-            await self.bot.say('Current active bans:\n{}'.format(bans))
+            await self.bot.say(f'Current active bans:\n{bans}')
         else:
             await self.bot.say('Congratulations! You have no bans')
     
@@ -59,33 +48,35 @@ class Moderation(Extension):
     @commands.has_permissions(ban_members=True)
     async def mute(self, ctx,member_name:str):
         """Mute/unmute a member"""
-        member = self.get_user(ctx, member_name)
+        member = self.bot.get_user(ctx, member_name)
         if member:
-            await self.bot.server_voice_state(member, mute=not member.voice.mute)
+            await self.bot.server_voice_state( \
+                member, mute=not member.voice.mute)
         else:
             await self.bot.say("Sorry, couldn't find that member")
     
-        await self.bot.say('A OK! {} has been muted'.format(member.name))
+        await self.bot.say(f'A OK! {member.name} has been muted')
         
     
     @commands.command(pass_context=True,no_pm=True)
     @commands.has_permissions(deafen_members=True)
     async def deafen(self, ctx,member_name:str):
         """Deafen/undeafen a member"""
-        member = self.get_user(ctx, member_name)
+        member = self.bot.get_user(ctx, member_name)
         if member:
-            await self.bot.server_voice_state(member, deafen=not member.voice.deaf)
+            await self.bot.server_voice_state( \
+                member, deafen=not member.voice.deaf)
         else:
             await self.bot.say("Sorry, couldn't find that member")
     
-        await self.bot.say('A OK! {} has been muted'.format(member.name))
+        await self.bot.say(f'A OK! {member.name} has been muted')
         
     
     @commands.command(pass_context=True,no_pm=True)
     @commands.has_permissions(manage_roles=True)
     async def role(self, ctx,member_name:str,role_name:str):
         """Add a user to a role"""
-        member = self.get_user(ctx, member_name)
+        member = self.bot.get_user(ctx, member_name)
         if member:
             role = self.get_role(ctx, role_name)
             if role:
@@ -95,14 +86,14 @@ class Moderation(Extension):
         else:
             await self.bot.say("Sorry, couldn't find that member")
     
-        await self.bot.say('A OK!  I have added {} to {}'.format(member.name,role.name))
+        await self.bot.say(f'A OK!  I have added {member.name} to {role.name}')
     
     
     @commands.command(pass_context=True,no_pm=True)
     @commands.has_permissions(manage_roles=True)
     async def unrole(self, ctx,member_name:str,role_name:str):
         """Remove a user from a role"""
-        member = self.get_user(ctx, member_name)
+        member = self.bot.get_user(ctx, member_name)
         if member:
             role = self.get_role(ctx, role_name)
             if role:
@@ -112,7 +103,8 @@ class Moderation(Extension):
         else:
             await self.bot.say("Sorry, couldn't find that member")
     
-        await self.bot.say('A OK!  I have removed {} from {}'.format(member.name,role.name))
+        await self.bot.say( \
+            f'A OK!  I have removed {member.name} from {role.name}')
     
     @commands.command(pass_context=True,no_pm=True)
     @commands.has_permissions(manage_messages=True)
@@ -137,7 +129,7 @@ class Moderation(Extension):
                 m = 'Deleted {} messages'.format(arg)
                 
             else:
-                member = self.get_user(ctx, arg)
+                member = self.bot.get_user(ctx, arg)
                 if member:
                     limit = 5
                     check = lambda m: m.author == member

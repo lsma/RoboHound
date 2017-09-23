@@ -12,15 +12,36 @@ logger.setLevel(logging.DEBUG)
 
 class UtilityMixin:
     """Utility methods for the bot"""
+    
+    def get_user(self, ctx, member_name):
+        """Find a user by name, mention, or id in context"""
+        return discord.utils.find(
+            lambda x: member_name in (x.name,x.mention,x.nick,x.id),
+            ctx.message.server.members)
+            
+    def get_role(self, ctx, role_name):
+        """Find a role by name, mention, or id in context"""
+        return discord.utils.find(
+            lambda x: role_name in (x.name,x.mention,x.id),
+            ctx.message.server.members)
+    
+    def get_channel(self, ctx, channel_name):
+        """Find a channel by name, metion, or id in context"""
+        return discord.utils.find(
+            lambda x: channel_name in (x.name,x.mention,x.id),
+            ctx.message.server.channels)
+    
+    
     async def bot_owner_get(self, message, check=None, timeout=None):
         """
         Internal utility function used by plugins that need to confirm something
         with the bot owner
         """
-        await self.wait_until_ready()
+        message = await self.wait_until_ready()
         await self.send_message(self.owner, message)
         return await client.wait_for_message(
-            author=self.owner, check=check, timeout=timeout)
+            author=self.owner, channel=message.channel,
+            check=check, timeout=timeout)
     
     async def bot_owner_confirm(self, message):
         """
@@ -31,7 +52,7 @@ class UtilityMixin:
         #   it is yes or no
         def c(msg):
             return isinstance(msg.channel, discord.PrivateChannel) and \
-                msg.content.lower() in ('yes', 'no')
+                msg.content.casefold() in ('yes', 'no')
         
         # Wait for the answer, and return the result
         answer = await self.bot_owner_get(message, check=c, timeout=timeout)
